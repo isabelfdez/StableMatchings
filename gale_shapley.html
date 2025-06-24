@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Gale-Shapley Visualization</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 20px;
+    }
+    #controls {
+      margin-bottom: 10px;
+    }
+    button {
+      padding: 10px 20px;
+      margin-right: 10px;
+      font-size: 14px;
+      border: none;
+      border-radius: 4px;
+      background-color: #007acc;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #005fa3;
+    }
+    #info {
+      font-family: monospace;
+      background-color: white;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      width: fit-content;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+<div id="controls">
+  <button onclick="stepAlgorithm()">Next Step</button>
+  <button onclick="resetAlgorithm()">Reset</button>
+</div>
+<div id="info"></div>
+<script>
+let L_agents = ["1", "2", "3"];
+let R_agents = ["a", "b", "c"];
+
+let L_prefs = {};
+let R_prefs = {};
+let proposals = [];
+let engaged = {};
+let rejectedLastStep = [];
+let currentStep = 0;
+
+function shuffle(arr) {
+  let a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function generatePreferences() {
+  for (let l of L_agents) {
+    L_prefs[l] = shuffle(R_agents);
+  }
+  for (let r of R_agents) {
+    R_prefs[r] = shuffle(L_agents);
+  }
+}
+
+function setup() {
+  createCanvas(800, 400);
+  textAlign(CENTER, CENTER);
+  textSize(16);
+  generatePreferences();
+  resetAlgorithm();
+  noLoop();
+}
+
+function draw() {
+  background(255);
+  drawProposals();
+  drawAgents();
+  updateInfo();
+}
+
+function drawAgents() {
+  for (let i = 0; i < L_agents.length; i++) {
+    fill(0, 102, 153);
+    ellipse(150, 100 + i * 100, 60, 60);
+    fill(255);
+    text(L_agents[i], 150, 100 + i * 100);
+  }
+
+  for (let i = 0; i < R_agents.length; i++) {
+    fill(153, 0, 102);
+    ellipse(650, 100 + i * 100, 60, 60);
+    fill(255);
+    text(R_agents[i], 650, 100 + i * 100);
+  }
+}
+
+function drawProposals() {
+  for (let [l, r] of proposals) {
+    let li = L_agents.indexOf(l);
+    let ri = R_agents.indexOf(r);
+    if (li !== -1 && ri !== -1) {
+      let color = null;
+      if (engaged[r] === l) {
+        color = 'green'; // accepted proposal
+      } else if (rejectedLastStep.some(([rl, rr]) => rl === l && rr === r)) {
+        color = 'red'; // just rejected this step
+      }
+      if (color) {
+        stroke(color);
+        strokeWeight(2);
+        line(150, 100 + li * 100, 650, 100 + ri * 100);
+      }
+    }
+  }
+  noStroke();
+}
+
+function updateInfo() {
+  let info = "<pre><b>Preferences:</b>\n";
+  for (let l of L_agents) {
+    info += `${l}: ${L_prefs[l].join(", ")}\n`;
+  }
+  info += "\n";
+  for (let r of R_agents) {
+    info += `${r}: ${R_prefs[r].join(", ")}\n`;
+  }
+  info += "\n<b>Matches:</b>\n";
+  for (let l of L_agents) {
+    let match = Object.entries(engaged).find(([r, ll]) => ll === l);
+    info += `${l}: ${match ? match[0] : "-"}\n`;
+  }
+  info += "</pre>";
+  document.getElementById("info").innerHTML = info;
+}
+
+function stepAlgorithm() {
+  rejectedLastStep = [];
+
+  for (let l of L_agents) {
+    if (!Object.values(engaged).includes(l)) {
+      let prefs = L_prefs[l];
+      for (let r of prefs) {
+        if (!proposals.find(p => p[0] === l && p[1] === r)) {
+          proposals.push([l, r]);
+
+          if (engaged[r] === null) {
+            engaged[r] = l;
+          } else {
+            let current = engaged[r];
+            if (R_prefs[r].indexOf(l) < R_prefs[r].indexOf(current)) {
+              rejectedLastStep.push([current, r]);
+              engaged[r] = l;
+            } else {
+              rejectedLastStep.push([l, r]);
+            }
+          }
+          redraw();
+          return;
+        }
+      }
+    }
+  }
+
+  proposals = proposals.filter(([l, r]) => {
+    return !rejectedLastStep.some(([rl, rr]) => rl === l && rr === r);
+  });
+
+  redraw();
+}
+
+function resetAlgorithm() {
+  proposals = [];
+  engaged = {};
+  rejectedLastStep = [];
+  generatePreferences();
+  for (let r of R_agents) {
+    engaged[r] = null;
+  }
+  currentStep = 0;
+  redraw();
+}
+</script>
+</body>
+</html>
