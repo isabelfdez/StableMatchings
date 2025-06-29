@@ -23,7 +23,7 @@
 </head>
 <body>
 
-  <h1>Upper Bounds Visualiser</h1>
+  <h1>Bounds Visualiser</h1>
 
   <div id="slider-container">
     <div class="slider-group">
@@ -67,8 +67,10 @@
 
     const muColor = '#2ca02c';          // green
     const alphaColor = '#ff7f0e';       // orange
+    const redColor = '#d62728';         // red
     const mainLineColor = '#1f77b4';    // blue
     const dashedGray = 'gray';
+    const darkerRed = '#8B0000';
 
     function updatePlots() {
       const mu = parseFloat(muSlider.value);
@@ -76,6 +78,7 @@
       const muRatio = mu / (mu + 1);
 
       const f_alpha = (alpha > muRatio) ? muRatio / alpha : 1;
+      const g_alpha = alpha * muRatio;
 
       muVal.textContent = mu.toFixed(3);
       alphaVal.textContent = alpha.toFixed(3);
@@ -103,6 +106,9 @@
       // Plot 2
       const x2_vals = Array.from({length: 800}, (_, i) => muRatio + (1 - muRatio) * (i + 1) / 800);
       const y2_vals = x2_vals.map(x => Math.min(1, (1 / x) * muRatio));
+
+      const x3_vals = Array.from({length: 1000}, (_, i) => i / 1000);
+      const y3_vals = x3_vals.map(x => x * muRatio);
 
       plot2_layout.shapes = [
         {
@@ -149,12 +155,28 @@
           name: "1/x * μ/(μ+1)"
         },
         {
+          x: x3_vals,
+          y: y3_vals,
+          type: "scatter",
+          mode: "lines",
+          line: {color: darkerRed, width: 2},
+          name: "x * μ/(μ+1)"
+        },
+        {
           x: [alpha],
           y: [f_alpha],
           type: "scatter",
           mode: "markers",
           marker: {size: 10, color: alphaColor},
-          name: (alpha > muRatio) ? "1/α * μ/(μ+1)" : "1"
+          name: (alpha > muRatio) ? "1/α · μ/(μ+1)" : "1"
+        },
+        {
+          x: [alpha],
+          y: [g_alpha],
+          type: "scatter",
+          mode: "markers",
+          marker: {size: 10, color: alphaColor, symbol: 'diamond'},
+          name: "α · μ/(μ+1)"
         },
         {
           x: [0, 1],
