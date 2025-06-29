@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Mu and Alpha Visualizer</title>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <style>
+    body { font-family: sans-serif; margin: 40px; text-align: center; }
+    #slider-container { margin-bottom: 30px; }
+    #plot-container {
+      display: flex;
+      justify-content: center;
+      gap: 40px;
+    }
+    .plot {
+      width: 600px;
+      height: 400px;
+    }
+    .slider-group {
+      margin-bottom: 15px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Bound Visualiser</h1>
+
+  <div id="slider-container">
+    <div class="slider-group">
+      <label for="muSlider"><strong style="color: #2ca02c;">μ: </strong><span id="muVal">0.500</span></label><br>
+      <input type="range" id="muSlider" min="0.001" max="0.999" step="0.001" value="0.5" style="width: 60%;">
+    </div>
+    <div class="slider-group">
+      <label for="alphaSlider"><strong style="color: #ff7f0e;">α: </strong><span id="alphaVal">0.750</span></label><br>
+      <input type="range" id="alphaSlider" min="0.334" max="1.0" step="0.001" value="0.75" style="width: 60%;">
+    </div>
+  </div>
+
+  <div id="plot-container">
+    <div id="plot1" class="plot"></div>
+    <div id="plot2" class="plot"></div>
+  </div>
+
+  <script>
+    const x_vals = Array.from({length: 1000}, (_, i) => (i + 1) / 1000); // (0,1]
+    const y_vals = x_vals.map(x => x / (x + 1));
+
+    const plot1_layout = {
+      title: "Plot of x / (x + 1)",
+      xaxis: {range: [0, 1], title: 'x'},
+      yaxis: {range: [0, 1], title: 'x / (x + 1)'},
+      margin: { t: 50 }
+    };
+
+    const plot2_layout = {
+      title: "Efficiency vs Stability",
+      xaxis: {range: [0, 1], title: 'α-stability'},
+      yaxis: {range: [0, 1], title: 'γ-efficiency'},
+      margin: { t: 50 }
+    };
+
+    const muSlider = document.getElementById("muSlider");
+    const alphaSlider = document.getElementById("alphaSlider");
+    const muVal = document.getElementById("muVal");
+    const alphaVal = document.getElementById("alphaVal");
+
+    const muColor = '#2ca02c';          // green
+    const alphaColor = '#ff7f0e';       // orange
+    const mainLineColor = '#1f77b4';    // blue
+
+    function updateAlphaSlider(mu) {
+      const muRatio = mu / (mu + 1);
+      alphaSlider.min = (muRatio + 0.001).toFixed(3);
+      if (parseFloat(alphaSlider.value) <= muRatio) {
+        alphaSlider.value = (muRatio + 0.05).toFixed(3);
+      }
+    }
+
+    function updatePlots() {
+      const mu = parseFloat(muSlider.value);
+      const alpha = parseFloat(alphaSlider.value);
+      const muRatio = mu / (mu + 1);
+      const f_alpha = muRatio / alpha;
+
+      muVal.textContent = mu.toFixed(3);
+      alphaVal.textContent = alpha.toFixed(3);
+
+      updateAlphaSlider(mu);
+
+      // Plot 1
+      Plotly.react("plot1", [
+        {
+          x: x_vals,
+          y: y_vals,
+          type: "scatter",
+          mode: "lines",
+          name: "x/(x+1)",
+          line: {color: mainLineColor}
+        },
+        {
+          x: [mu],
+          y: [muRatio],
+          type: "scatter",
+          mode: "markers",
+          marker: {size: 10, color: muColor},
+          name: "μ/(μ+1)"
+        }
+      ], plot1_layout);
+
+      // Plot 2
+      const x2_vals = Array.from({length: 800}, (_, i) => muRatio + (1 - muRatio) * (i + 1) / 800);
+      const y2_vals = x2_vals.map(x => Math.min(1, (1 / x) * muRatio));
+
+      Plotly.react("plot2", [
+        {
+          x: x2_vals,
+          y: y2_vals,
+          type: "scatter",
+          mode: "lines",
+          line: {color: mainLineColor},
+          name: "1/x * μ/(μ+1)"
+        },
+        {
+          x: [alpha],
+          y: [f_alpha],
+          type: "scatter",
+          mode: "markers",
+          marker: {size: 10, color: alphaColor},
+          name: "1/α * μ/(μ+1)"
+        }
+      ], plot2_layout);
+    }
+
+    updateAlphaSlider(parseFloat(muSlider.value));
+    updatePlots();
+
+    muSlider.addEventListener("input", updatePlots);
+    alphaSlider.addEventListener("input", updatePlots);
+  </script>
+
+</body>
+</html>
