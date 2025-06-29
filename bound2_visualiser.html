@@ -23,7 +23,7 @@
 </head>
 <body>
 
-  <h1>Bound Visualiser</h1>
+  <h1>Upper Bounds Visualiser</h1>
 
   <div id="slider-container">
     <div class="slider-group">
@@ -42,7 +42,7 @@
   </div>
 
   <script>
-    const x_vals = Array.from({length: 1000}, (_, i) => (i + 1) / 1000); // (0,1]
+    const x_vals = Array.from({length: 1000}, (_, i) => (i + 1) / 1000);
     const y_vals = x_vals.map(x => x / (x + 1));
 
     const plot1_layout = {
@@ -52,11 +52,12 @@
       margin: { t: 50 }
     };
 
-    const plot2_layout = {
+    let plot2_layout = {
       title: "Efficiency vs Stability",
       xaxis: {range: [0, 1], title: 'α-stability'},
       yaxis: {range: [0, 1], title: 'γ-efficiency'},
-      margin: { t: 50 }
+      margin: { t: 50 },
+      shapes: []
     };
 
     const muSlider = document.getElementById("muSlider");
@@ -67,6 +68,7 @@
     const muColor = '#2ca02c';          // green
     const alphaColor = '#ff7f0e';       // orange
     const mainLineColor = '#1f77b4';    // blue
+    const dashedGray = 'gray';
 
     function updateAlphaSlider(mu) {
       const muRatio = mu / (mu + 1);
@@ -111,7 +113,42 @@
       const x2_vals = Array.from({length: 800}, (_, i) => muRatio + (1 - muRatio) * (i + 1) / 800);
       const y2_vals = x2_vals.map(x => Math.min(1, (1 / x) * muRatio));
 
+      plot2_layout.shapes = [
+        {
+          type: 'line',
+          x0: muRatio,
+          x1: muRatio,
+          y0: 0,
+          y1: 1,
+          line: {
+            color: dashedGray,
+            width: 2,
+            dash: 'dash'
+          }
+        },
+        {
+          type: 'line',
+          x0: 0,
+          x1: 1,
+          y0: muRatio,
+          y1: muRatio,
+          line: {
+            color: dashedGray,
+            width: 2,
+            dash: 'dash'
+          }
+        }
+      ];
+
       Plotly.react("plot2", [
+        {
+          x: [0, muRatio],
+          y: [1, 1],
+          type: "scatter",
+          mode: "lines",
+          line: {color: mainLineColor, width: 4},
+          name: "y = 1"
+        },
         {
           x: x2_vals,
           y: y2_vals,
@@ -127,6 +164,24 @@
           mode: "markers",
           marker: {size: 10, color: alphaColor},
           name: "1/α * μ/(μ+1)"
+        },
+        {
+          x: [0, 1],
+          y: [muRatio, muRatio],
+          type: "scatter",
+          mode: "lines",
+          line: {color: dashedGray, dash: 'dash', width: 2},
+          name: "y = μ / (μ + 1)",
+          showlegend: true
+        },
+        {
+          x: [muRatio, muRatio],
+          y: [0, 1],
+          type: "scatter",
+          mode: "lines",
+          line: {color: dashedGray, dash: 'dash', width: 2},
+          name: "x = μ / (μ + 1)",
+          showlegend: true
         }
       ], plot2_layout);
     }
